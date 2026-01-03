@@ -1,0 +1,20 @@
+﻿[dotenv@17.2.3] injecting env (4) from .env -- tip: ΓÜÖ∩╕Å  override existing env vars with { override: true }
+Connected to DB
+--- RAW LESSON EXPORT ---
+Total Lessons in DB: 5
+[Lesson] ID: 69569ae1dd0304d3a6433862 | Title: "Elon mask" | CourseID: 695633dedd70f89e4a2a08f9 | VideoURL: "https://www.youtube.com/embed/IgKWPdJWuBQ"
+[Lesson] ID: 6956a5611c793c1fe4c2bedb | Title: "Test Lesson via Script" | CourseID: 6956a275acf699c4a814d854 | VideoURL: "https://www.youtube.com/embed/dQw4w9WgXcQ"
+[Lesson] ID: 6956a8e133df62e784407b35 | Title: "Emergency Diagnostic Lesson" | CourseID: 6956a6b249e97f585199add5 | VideoURL: "https://www.youtube.com/embed/dQw4w9WgXcQ"
+[Lesson] ID: 6957d32f33d92ae22c6f0653 | Title: "Emergency Fix Lesson" | CourseID: 694a63417595ecd1d1c9877b | VideoURL: "https://www.youtube.com/embed/dQw4w9WgXcQ"
+[Lesson] ID: 6957d49275b476b76d0b9f96 | Title: "API Test Lesson" | CourseID: 6957d3c97c1a7911ea525368 | VideoURL: "https://www.youtube.com/embed/dQw4w9WgXcQ"
+
+--- COURSE CHECK ---
+[Course] ID: 694a63417595ecd1d1c9877b | Title: "Learn React-JS"
+[Course] ID: 695633dedd70f89e4a2a08f9 | Title: "Upwork"
+[Course] ID: 695639badd70f89e4a2a0a7e | Title: "Test Course 1767258554392"
+[Course] ID: 695699ebdd0304d3a643384c | Title: "Test Course 1767283179220"
+[Course] ID: 6956a275acf699c4a814d854 | Title: "Digital world"
+[Course] ID: 6956a4be05eef7e953d3f941 | Title: "Test Course 1767285950699"
+[Course] ID: 6956a6b249e97f585199add5 | Title: "earth Engenering"
+[Course] ID: 6957bffabbe316acae037fe3 | Title: "check out"
+[Course] ID: 6957d3c97c1a7911ea525368 | Title: "Fun"
