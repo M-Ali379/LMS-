@@ -161,6 +161,113 @@ const InstructorDashboard = () => {
                 </div>
             )}
 
+
+            {/* Modal */}
+            <AnimatePresence>
+                {showCreate && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            className="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden font-sans"
+                        >
+                            <div className="p-6 border-b flex justify-between items-center bg-gray-50">
+                                <h3 className="font-bold text-lg text-gray-900">Create New Course</h3>
+                                <button onClick={() => setShowCreate(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
+                                    <X size={20} />
+                                </button>
+                            </div>
+                            <form onSubmit={handleCreate} className="p-6 space-y-5">
+                                {error && (
+                                    <div className="p-4 bg-red-50 text-red-600 rounded-xl text-sm font-medium">
+                                        {error}
+                                    </div>
+                                )}
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Course Title</label>
+                                    <input
+                                        className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
+                                        placeholder="e.g. Advanced React Patterns"
+                                        value={newCourse.title}
+                                        onChange={e => setNewCourse({ ...newCourse, title: e.target.value })}
+                                        required
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Category</label>
+                                    <input
+                                        className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
+                                        placeholder="e.g. Development"
+                                        value={newCourse.category}
+                                        onChange={e => setNewCourse({ ...newCourse, category: e.target.value })}
+                                        required
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Description</label>
+                                    <textarea
+                                        className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none h-32 resize-none transition-all"
+                                        placeholder="What will students learn?"
+                                        value={newCourse.description}
+                                        onChange={e => setNewCourse({ ...newCourse, description: e.target.value })}
+                                        required
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Thumbnail URL</label>
+                                    <div className="relative">
+                                        <ImageIcon className="absolute top-3.5 left-3 text-gray-400" size={18} />
+                                        <input
+                                            className="w-full pl-10 pr-3 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
+                                            placeholder="https://..."
+                                            value={newCourse.image}
+                                            onChange={e => setNewCourse({ ...newCourse, image: e.target.value })}
+                                        />
+                                    </div>
+                                </div>
+                                {newCourse.image && (
+                                    <div className="mt-3 relative aspect-video rounded-xl overflow-hidden bg-gray-100 border border-gray-200">
+                                        <img
+                                            src={getYouTubeThumbnail(newCourse.image) || newCourse.image}
+                                            alt="Preview"
+                                            className="w-full h-full object-cover"
+                                            onError={(e) => {
+                                                e.target.onerror = null;
+                                                e.target.src = 'https://via.placeholder.com/300?text=Invalid+URL';
+                                            }}
+                                        />
+                                    </div>
+                                )}
+
+                                <div className="pt-4 flex gap-3">
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowCreate(false)}
+                                        className="flex-1 py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors"
+                                        disabled={submitting}
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        disabled={submitting}
+                                        className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 shadow-lg shadow-blue-600/20 disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center"
+                                    >
+                                        {submitting ? (
+                                            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                        ) : (
+                                            'Create Course'
+                                        )}
+                                    </button>
+                                </div>
+                            </form>
+                        </motion.div>
+                    </div>
+                )
+                }
+            </AnimatePresence>
+
             {/* Content Switcher */}
             {!loading && (
                 <>
