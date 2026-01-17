@@ -3,7 +3,8 @@ const router = express.Router({ mergeParams: true });
 const {
     addLesson,
     updateLesson,
-    deleteLesson
+    deleteLesson,
+    submitQuiz
 } = require('../controllers/lessonController');
 
 const { protect, authorize } = require('../middleware/authMiddleware');
@@ -14,5 +15,7 @@ router.route('/')
 router.route('/:id')
     .put(protect, authorize('instructor', 'admin'), updateLesson)
     .delete(protect, authorize('instructor', 'admin'), deleteLesson);
+
+router.post('/:id/submit', protect, submitQuiz);
 
 module.exports = router;

@@ -1,51 +1,28 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import CourseCard from '../../components/CourseCard';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { Search } from 'lucide-react';
-import UserMenu from '../../components/UserMenu';
-import StatsOverview from '../../components/StatsOverview';
+import { BookOpen, Clock, Award, PlayCircle, Search, ArrowRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { getYouTubeThumbnail } from '../../lib/utils';
+import StatsCard from '../../components/StatsCard';
 
 const StudentDashboard = () => {
     const [courses, setCourses] = useState([]);
-    const [myCourses, setMyCourses] = useState([]);
-    const [activeTab, setActiveTab] = useState('all');
+    const [stats, setStats] = useState({ totalEnrolled: 0, completedCourses: 0, inProgressCourses: 0, detailedProgress: [] });
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
-    const [enrollmentError, setEnrollmentError] = useState(null);
     const navigate = useNavigate();
-    const location = useLocation();
-
-    // Sync Tab with URL
-    useEffect(() => {
-        if (location.pathname.includes('my-courses')) {
-            setActiveTab('my');
-        } else {
-            setActiveTab('all');
-        }
-    }, [location]);
 
     useEffect(() => {
         const fetchData = async () => {
             try {
-                // Use relative URLs to respect proxy configuration
-                const [allRes, myRes] = await Promise.all([
+                const [coursesRes, statsRes] = await Promise.all([
                     axios.get('/api/courses'),
-                    axios.get('/api/progress/my-courses')
+                    axios.get('/api/analytics/student')
                 ]);
-
-                // Ensure data is an array before setting
-                setCourses(Array.isArray(allRes.data) ? allRes.data : []);
-
-                const myCoursesData = Array.isArray(myRes.data) ? myRes.data : [];
-                setMyCourses(myCoursesData.map(p => {
-                    // Safety check if progress object or course populated correctly
-                    return p.course ? { ...p.course, progressId: p._id } : null;
-                }).filter(Boolean)); // Remove nulls
-
+                setCourses(coursesRes.data.data || coursesRes.data); // Handle both formats safe
+                setStats(statsRes.data);
             } catch (error) {
-                console.error("Failed to load dashboard data:", error);
-                // Don't crash the whole page, just show empty state or error toast
+                console.error("Error loading student data", error);
             } finally {
                 setLoading(false);
             }
@@ -53,139 +30,120 @@ const StudentDashboard = () => {
         fetchData();
     }, []);
 
-    const handleEnroll = async (courseId) => {
-        try {
-            await axios.post(`/api/courses/${courseId}/enroll`);
-
-            const [allRes, myRes] = await Promise.all([
-                axios.get('/api/courses'),
-                axios.get('/api/progress/my-courses')
-            ]);
-
-            setCourses(Array.isArray(allRes.data) ? allRes.data : []);
-
-            const myCoursesData = Array.isArray(myRes.data) ? myRes.data : [];
-            setMyCourses(myCoursesData.map(p => {
-                return p.course ? { ...p.course, progressId: p._id } : null;
-            }).filter(Boolean));
-
-            setActiveTab('my');
-        } catch (error) {
-            console.error(error);
-            setEnrollmentError(error.response?.data?.message || 'Enrollment failed');
-            setTimeout(() => setEnrollmentError(null), 3000);
-        }
-    };
-
-    const handleContinue = (courseId) => {
-        navigate(`/student/course/${courseId}`);
-    };
-
-    const isMyCourses = location.pathname.includes('my-courses');
-
-    // Filter courses based on view
-    const coursesToShow = (isMyCourses ? (myCourses || []) : (courses || [])).filter(c =>
-        c && (c.title?.toLowerCase().includes(search.toLowerCase()) ||
-            c.category?.toLowerCase().includes(search.toLowerCase()))
+    const filteredCourses = courses.filter(c =>
+        c.title.toLowerCase().includes(search.toLowerCase())
     );
 
-    return (
-        <div className="space-y-8 animate-in fade-in duration-500">
-            {/* Conditional Header Section */}
-            <div className={`relative rounded-3xl p-8 text-white shadow-xl overflow-hidden ${isMyCourses ? 'bg-gradient-to-r from-emerald-600 to-teal-700 shadow-emerald-600/20' : 'bg-gradient-to-r from-blue-600 to-indigo-700 shadow-blue-600/20'}`}>
-                <div className="relative z-10">
-                    <div className="flex justify-between items-start mb-6">
-                        <div>
-                            <h1 className="text-3xl font-bold mb-2">{isMyCourses ? 'My Learning' : 'Explore & Learn'}</h1>
-                            <p className="text-blue-100 max-w-lg">
-                                {isMyCourses
-                                    ? 'Continue your journey. Pick up where you left off.'
-                                    : 'Expand your knowledge with our premium courses. Track your progress and achieve certification.'}
-                            </p>
-                        </div>
-                        <UserMenu />
-                    </div>
+    if (loading) return <div>Loading...</div>;
 
-                    <div className="relative max-w-md">
-                        <Search className="absolute left-4 top-3.5 text-gray-400" size={20} />
+    return (
+        <div className="space-y-8">
+            <h1 className="text-2xl font-bold text-gray-900">My Learning Dashboard</h1>
+
+            {/* Stats Row */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <StatsCard
+                    title="Enrolled Courses"
+                    value={stats.totalEnrolled}
+                    icon={BookOpen}
+                    color="blue"
+                />
+                <StatsCard
+                    title="In Progress"
+                    value={stats.inProgressCourses}
+                    icon={Clock}
+                    color="yellow"
+                />
+                <StatsCard
+                    title="Completed"
+                    value={stats.completedCourses}
+                    icon={Award}
+                    color="green"
+                />
+            </div>
+
+            {/* Continue Learning */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                <div className="flex justify-between items-center mb-6">
+                    <h2 className="text-xl font-bold text-gray-900">Continue Learning</h2>
+                    <div className="relative w-64">
+                        <Search className="absolute left-3 top-2.5 text-gray-400" size={18} />
                         <input
-                            type="text"
-                            placeholder={isMyCourses ? "Search your courses..." : "Search for courses..."}
-                            className="w-full pl-12 pr-4 py-3 rounded-xl bg-white text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-white/50 border-none outline-none shadow-lg"
+                            className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                            placeholder="Find a course..."
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
                         />
                     </div>
                 </div>
 
-                {/* Decorative Background Circles */}
-                <div className="absolute top-0 right-0 -mr-20 -mt-20 w-80 h-80 bg-white/10 rounded-full blur-3xl pointer-events-none"></div>
-                <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-60 h-60 bg-white/5 rounded-full blur-3xl pointer-events-none"></div>
-            </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {filteredCourses.map(course => {
+                        // Find progress for this course from stats.detailedProgress
+                        const progress = stats.detailedProgress?.find(p => p.courseTitle === course.title);
+                        const isEnrolled = !!progress;
 
-            {enrollmentError && (
-                <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-xl">
-                    {enrollmentError}
-                </div>
-            )}
+                        // Only show enrolled courses in "Continue Learning" ideally, but for now showing all
+                        // You might want to filter: if (!isEnrolled) return null;
 
-            {/* Stats Overview - Show ONLY on Main Dashboard */}
-            {!loading && !isMyCourses && <StatsOverview coursesEnrolled={myCourses.length} completed={0} />}
-
-
-            {/* Removed Redundant Tab Navigation */}
-
-            {/* Section Title */}
-            <div className="flex items-center justify-between">
-                <h2 className="text-xl font-bold text-gray-900">
-                    {isMyCourses ? 'Enrolled Courses' : 'Popular Courses'}
-                </h2>
-                {!isMyCourses && (
-                    <button onClick={() => navigate('/student/my-courses')} className="text-blue-600 font-medium text-sm hover:underline">
-                        Go to My Learning &rarr;
-                    </button>
-                )}
-            </div>
-
-            {/* Grid with Skeleton Loading */}
-            {loading ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
-                    {[1, 2, 3, 4].map((n) => (
-                        <div key={n} className="bg-white rounded-2xl p-4 shadow-sm h-80 animate-pulse">
-                            <div className="bg-gray-200 h-40 rounded-xl mb-4"></div>
-                            <div className="h-6 bg-gray-200 rounded w-3/4 mb-2"></div>
-                            <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-                        </div>
-                    ))}
-                </div>
-            ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
-                    {coursesToShow.map(course => {
-                        const isEnrolled = myCourses.some(my => my._id === course._id);
                         return (
-                            <CourseCard
-                                key={course._id}
-                                course={course}
-                                isEnrolled={isMyCourses || isEnrolled}
-                                onAction={isMyCourses || isEnrolled ? handleContinue : handleEnroll}
-                            />
+                            <div key={course._id} className="group border border-gray-100 rounded-xl overflow-hidden hover:shadow-lg transition-all duration-300">
+                                <div className="relative h-48 overflow-hidden">
+                                    <img
+                                        src={getYouTubeThumbnail(course.image) || course.image}
+                                        alt={course.title}
+                                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                        onError={(e) => {
+                                            e.target.onerror = null;
+                                            e.target.src = 'https://via.placeholder.com/300?text=Course';
+                                        }}
+                                    />
+                                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                        <button
+                                            onClick={() => navigate(`/course/${course._id}`)}
+                                            className="bg-white text-gray-900 px-6 py-2 rounded-full font-bold transform translate-y-4 group-hover:translate-y-0 transition-all duration-300 flex items-center gap-2"
+                                        >
+                                            <PlayCircle size={20} /> {isEnrolled ? 'Continue' : 'Start'}
+                                        </button>
+                                    </div>
+                                    {isEnrolled && (
+                                        <div className="absolute bottom-0 left-0 right-0 h-1 bg-gray-200">
+                                            <div
+                                                className={`h-full ${progress.isCompleted ? 'bg-green-500' : 'bg-blue-600'}`}
+                                                style={{ width: progress.isCompleted ? '100%' : '50%' }} // Mock percentage or calculate real one
+                                            ></div>
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="p-5">
+                                    <div className="flex justify-between items-start mb-2">
+                                        <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-md uppercase tracking-wide">{course.category}</span>
+                                        {isEnrolled && (
+                                            <span className={`text-xs font-medium ${progress.isCompleted ? 'text-green-600' : 'text-blue-600'}`}>
+                                                {progress.isCompleted ? 'Completed' : 'In Progress'}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <h3 className="font-bold text-gray-900 mb-2 line-clamp-1">{course.title}</h3>
+                                    <p className="text-gray-500 text-sm line-clamp-2 mb-4">{course.description}</p>
+
+                                    <button
+                                        onClick={() => navigate(`/course/${course._id}`)}
+                                        className="w-full py-2.5 border border-gray-200 text-gray-600 rounded-xl font-medium hover:bg-gray-50 hover:text-gray-900 transition-colors flex items-center justify-center gap-2 group-hover:border-blue-200 group-hover:bg-blue-50/50 group-hover:text-blue-700"
+                                    >
+                                        Go to Course <ArrowRight size={16} />
+                                    </button>
+                                </div>
+                            </div>
                         );
                     })}
                 </div>
-            )}
-
-            {!loading && coursesToShow.length === 0 && (
-                <div className="text-center py-20 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
-                    <p className="text-gray-500">
-                        {isMyCourses
-                            ? "You haven't enrolled in any courses yet."
-                            : "No courses found matching your criteria."}
-                    </p>
-                    {isMyCourses && (
-                        <button onClick={() => navigate('/student')} className="mt-4 text-blue-600 font-medium hover:underline">Browse Courses</button>
-                    )}
-                </div>
-            )}
+                {filteredCourses.length === 0 && (
+                    <div className="text-center py-12 text-gray-500">
+                        No courses found matching your search.
+                    </div>
+                )}
+            </div>
         </div>
     );
 };

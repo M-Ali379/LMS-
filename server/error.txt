@@ -1,0 +1,18 @@
+[dotenv@17.2.3] injecting env (4) from .env -- tip: ✅ audit secrets and track compliance: https://dotenvx.com/ops
+C:\Users\haide\OneDrive\Desktop\LMS code\server\controllers\courseController.js:106
+    getCourses,
+    ^
+
+ReferenceError: getCourses is not defined
+    at Object.<anonymous> (C:\Users\haide\OneDrive\Desktop\LMS code\server\controllers\courseController.js:106:5)
+    at Module._compile (node:internal/modules/cjs/loader:1760:14)
+    at Object..js (node:internal/modules/cjs/loader:1892:10)
+    at Module.load (node:internal/modules/cjs/loader:1480:32)
+    at Module._load (node:internal/modules/cjs/loader:1299:12)
+    at TracingChannel.traceSync (node:diagnostics_channel:328:14)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:245:24)
+    at Module.require (node:internal/modules/cjs/loader:1503:12)
+    at require (node:internal/modules/helpers:152:16)
+    at Object.<anonymous> (C:\Users\haide\OneDrive\Desktop\LMS code\server\routes\courseRoutes.js:9:5)
+
+Node.js v25.2.1

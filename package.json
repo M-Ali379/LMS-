@@ -12,6 +12,8 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
-    "concurrently": "^9.2.1"
+    "axios-cookiejar-support": "^6.0.5",
+    "concurrently": "^9.2.1",
+    "tough-cookie": "^6.0.0"
   }
 }

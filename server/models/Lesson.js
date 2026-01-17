@@ -17,12 +17,18 @@ const lessonSchema = new mongoose.Schema({
     },
     videoUrl: {
         type: String,
-        required: [true, 'Please add a video URL'],
         trim: true
+        // Removed required: true to support text/quiz types
     },
     duration: {
         type: String
     },
+    questions: [{
+        questionText: { type: String, required: true },
+        options: [{ type: String, required: true }],
+        correctOptionIndex: { type: Number, required: true }, // 0-based index
+        points: { type: Number, default: 1 }
+    }],
     course: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Course',

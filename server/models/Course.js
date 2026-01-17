@@ -33,6 +33,11 @@ const courseSchema = new mongoose.Schema({
     toObject: { virtuals: true }
 });
 
+// Indexes for performance
+courseSchema.index({ title: 'text' });
+courseSchema.index({ category: 1 });
+courseSchema.index({ instructor: 1 });
+
 // Cascade delete lessons when a course is deleted
 courseSchema.pre('remove', async function (next) {
     console.log(`Lessons being removed from course ${this._id}`);

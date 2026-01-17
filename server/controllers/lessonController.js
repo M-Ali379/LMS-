@@ -136,8 +136,87 @@ const deleteLesson = async (req, res) => {
     }
 };
 
+// @desc    Submit Quiz attempt
+// @route   POST /api/lessons/:id/submit
+// @access  Private
+const submitQuiz = async (req, res) => {
+    try {
+        const { answers } = req.body; // Array of selected indices
+        const lesson = await Lesson.findById(req.params.id);
+
+        if (!lesson) {
+            return res.status(404).json({ message: 'Lesson not found' });
+        }
+
+        if (lesson.type !== 'quiz') {
+            return res.status(400).json({ message: 'This lesson is not a quiz' });
+        }
+
+        let score = 0;
+        let totalPoints = 0;
+
+        lesson.questions.forEach((q, index) => {
+            const points = q.points || 1;
+            totalPoints += points;
+            // Check if user answer matches correct index
+            if (answers[index] === q.correctOptionIndex) {
+                score += points;
+            }
+        });
+
+        const percentage = totalPoints === 0 ? 0 : (score / totalPoints) * 100;
+        const isPassed = percentage >= 70; // 70% passing grade
+
+        // Save Result
+        const QuizResult = require('../models/QuizResult');
+        const attempt = await QuizResult.create({
+            student: req.user.id,
+            lesson: lesson._id,
+            course: lesson.course,
+            score,
+            totalPoints,
+            isPassed
+        });
+
+        // Update Progress if passed
+        if (isPassed) {
+            const Progress = require('../models/Progress');
+            let progress = await Progress.findOne({
+                student: req.user.id,
+                course: lesson.course
+            });
+
+            if (!progress) {
+                progress = await Progress.create({
+                    student: req.user.id,
+                    course: lesson.course,
+                    completedLessons: [lesson._id]
+                });
+            } else {
+                if (!progress.completedLessons.includes(lesson._id)) {
+                    progress.completedLessons.push(lesson._id);
+                    await progress.save();
+                }
+            }
+        }
+
+        res.json({
+            success: true,
+            score,
+            totalPoints,
+            isPassed,
+            percentage
+        });
+
+    } catch (error) {
+        console.error("Quiz Submit Error:", error);
+        res.status(500).json({ message: 'Server Error' });
+    }
+};
+
 module.exports = {
     addLesson,
     updateLesson,
-    deleteLesson
+    deleteLesson,
+    submitQuiz
 };

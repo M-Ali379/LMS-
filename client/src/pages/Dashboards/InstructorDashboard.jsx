@@ -1,15 +1,16 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Plus, Layout, Edit, Trash2, X, Image as ImageIcon } from 'lucide-react';
+import { Plus, Layout, Edit, Trash2, X, Image as ImageIcon, BookOpen, Clock, Users } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLocation, useNavigate } from 'react-router-dom';
 import UserMenu from '../../components/UserMenu';
 import { getYouTubeThumbnail } from '../../lib/utils';
-import InstructorStats from '../../components/InstructorStats';
+import StatsCard from '../../components/StatsCard';
 import { useSocket } from '../../context/SocketContext'; // Import useSocket
 
 const InstructorDashboard = () => {
     const [courses, setCourses] = useState([]);
+    const [stats, setStats] = useState({ totalCourses: 0, totalStudents: 0, courseStats: [] });
     const [showCreate, setShowCreate] = useState(false);
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
@@ -70,16 +71,17 @@ const InstructorDashboard = () => {
                 return;
             }
 
-            // Optimization: In a real app, query specifically for this instructor's courses
-            // e.g., axios.get(`/api/courses?instructor=${user._id}`)
-            const res = await axios.get('/api/courses');
+            // Fetch both courses and new stats
+            // Fetch stats and ONLY my courses
+            const [coursesRes, statsRes] = await Promise.all([
+                axios.get(`/api/courses?instructor=${user._id}`),
+                axios.get('/api/analytics/instructor')
+            ]);
 
-            const myCourses = res.data.filter(c => {
-                const instructorId = c.instructor?._id || c.instructor;
-                return instructorId === user._id;
-            });
+            const myCourses = coursesRes.data.data || coursesRes.data || [];
 
             setCourses(myCourses);
+            setStats(statsRes.data);
         } catch (error) {
             console.error("Failed to fetch courses:", error);
             setFetchError("Failed to load courses. Please check if the server is running.");
@@ -274,7 +276,28 @@ const InstructorDashboard = () => {
                     {/* Overview View */}
                     {!isCoursesView && (
                         <div className="space-y-8">
-                            <InstructorStats totalCourses={courses.length} />
+                            {/* Stats Overview */}
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <StatsCard
+                                    title="Active Courses"
+                                    value={stats.totalCourses}
+                                    icon={BookOpen}
+                                    color="blue"
+                                />
+                                <StatsCard
+                                    title="Total Students"
+                                    value={stats.totalStudents}
+                                    icon={Users}
+                                    color="purple"
+                                />
+                                <StatsCard
+                                    title="Avg. Completion"
+                                    value="-"
+                                    subtext="Calculated from enrollments"
+                                    icon={Clock}
+                                    color="green"
+                                />
+                            </div>
 
                             <div>
                                 <h2 className="text-xl font-bold text-gray-900 mb-4">Recent Courses</h2>
