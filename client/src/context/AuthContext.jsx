@@ -1,5 +1,6 @@
 import { createContext, useState, useEffect, useContext } from "react";
 import axios from 'axios';
+import Loading from '../components/Loading';
 
 const AuthContext = createContext();
 
@@ -19,7 +20,12 @@ export const AuthProvider = ({ children }) => {
                 const originalRequest = error.config;
 
                 // Prevent infinite loops if the refresh itself fails
-                if (error.response?.status === 401 && !originalRequest._retry) {
+                // Also explicitly check if the URL is the refresh endpoint
+                if (
+                    error.response?.status === 401 &&
+                    !originalRequest._retry &&
+                    !originalRequest.url.includes('/auth/refresh')
+                ) {
                     originalRequest._retry = true;
 
                     try {
@@ -48,12 +54,14 @@ export const AuthProvider = ({ children }) => {
         const checkAuth = async () => {
             try {
                 // specific timeout for initial check so we don't hang execution
-                const res = await axios.get('/api/auth/me', { timeout: 5000 });
+                const res = await axios.get('/api/auth/me', { timeout: 2000 });
                 setUser(res.data);
+                localStorage.setItem('user', JSON.stringify(res.data));
             } catch (error) {
                 // Not authenticated or server down
                 console.warn("Auth check failed:", error.message);
                 setUser(null);
+                localStorage.removeItem('user');
             } finally {
                 setLoading(false);
             }
@@ -64,12 +72,14 @@ export const AuthProvider = ({ children }) => {
     const login = async (email, password) => {
         const res = await axios.post('/api/auth/login', { email, password });
         setUser(res.data);
+        localStorage.setItem('user', JSON.stringify(res.data));
         return res.data;
     };
 
     const register = async (name, email, password, role) => {
         const res = await axios.post('/api/auth/register', { name, email, password, role });
         setUser(res.data);
+        localStorage.setItem('user', JSON.stringify(res.data));
         return res.data;
     };
 
@@ -80,11 +90,12 @@ export const AuthProvider = ({ children }) => {
             console.error(error);
         }
         setUser(null);
+        localStorage.removeItem('user');
     };
 
     return (
         <AuthContext.Provider value={{ user, loading, login, register, logout }}>
-            {!loading && children}
+            {loading ? <Loading /> : children}
         </AuthContext.Provider>
     );
 };

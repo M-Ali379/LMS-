@@ -26,23 +26,35 @@ export function getYouTubeThumbnail(url) {
 }
 
 // Convert any YouTube URL to Embed format
+// Convert any YouTube URL to Embed format
 export function getEmbedUrl(url) {
     if (!url) return '';
     try {
         if (url.includes('youtube.com/embed/')) return url;
 
         const cleanUrl = url.trim();
+
+        // If it looks like a video ID (11 chars), treat it as such
+        if (cleanUrl.length === 11 && /^[a-zA-Z0-9_-]{11}$/.test(cleanUrl)) {
+            return `https://www.youtube.com/embed/${cleanUrl}`;
+        }
+
         const urlObj = new URL(cleanUrl.startsWith('http') ? cleanUrl : `https://${cleanUrl}`);
 
         let videoId = '';
         if (urlObj.hostname.includes('youtu.be')) {
             videoId = urlObj.pathname.slice(1);
-        } else if (urlObj.searchParams.get('v')) {
+        } else if (urlObj.searchParams && urlObj.searchParams.get('v')) {
             videoId = urlObj.searchParams.get('v');
         }
 
         return videoId ? `https://www.youtube.com/embed/${videoId}` : url;
     } catch (e) {
+        // Fallback: If regex matches a standard ID pattern inside a messed up string
+        const match = url.match(/[a-zA-Z0-9_-]{11}/);
+        if (match) {
+            return `https://www.youtube.com/embed/${match[0]}`;
+        }
         return url;
     }
 }

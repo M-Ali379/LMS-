@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { BookOpen, Clock, Award, PlayCircle, Search, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import { getYouTubeThumbnail } from '../../lib/utils';
 import StatsCard from '../../components/StatsCard';
 
@@ -11,24 +12,40 @@ const StudentDashboard = () => {
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
     const navigate = useNavigate();
+    const { user } = useAuth();
 
     useEffect(() => {
         const fetchData = async () => {
+            if (!user) return; // Wait for user to be loaded
+
+            // 1. Fetch Courses (Critical)
             try {
-                const [coursesRes, statsRes] = await Promise.all([
-                    axios.get('/api/courses'),
-                    axios.get('/api/analytics/student')
-                ]);
-                setCourses(coursesRes.data.data || coursesRes.data); // Handle both formats safe
+                const coursesRes = await axios.get('/api/courses');
+                // Log what we got to help debug
+                console.log("Courses response:", coursesRes.data);
+                setCourses(coursesRes.data.data || coursesRes.data || []);
+            } catch (error) {
+                console.error("Error loading courses:", error);
+                // Fallback or retry?
+            }
+
+            // 2. Fetch Stats (Non-critical)
+            try {
+                const statsRes = await axios.get('/api/analytics/student');
+                console.log("Stats response:", statsRes.data);
                 setStats(statsRes.data);
             } catch (error) {
-                console.error("Error loading student data", error);
+                console.error("Error loading student stats:", error);
+                // We don't block the UI if stats fail
             } finally {
                 setLoading(false);
             }
         };
-        fetchData();
-    }, []);
+
+        if (user) {
+            fetchData();
+        }
+    }, [user]);
 
     const filteredCourses = courses.filter(c =>
         c.title.toLowerCase().includes(search.toLowerCase())
@@ -100,7 +117,7 @@ const StudentDashboard = () => {
                                     />
                                     <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                                         <button
-                                            onClick={() => navigate(`/course/${course._id}`)}
+                                            onClick={() => navigate(`/student/course/${course._id}`)}
                                             className="bg-white text-gray-900 px-6 py-2 rounded-full font-bold transform translate-y-4 group-hover:translate-y-0 transition-all duration-300 flex items-center gap-2"
                                         >
                                             <PlayCircle size={20} /> {isEnrolled ? 'Continue' : 'Start'}
@@ -128,7 +145,7 @@ const StudentDashboard = () => {
                                     <p className="text-gray-500 text-sm line-clamp-2 mb-4">{course.description}</p>
 
                                     <button
-                                        onClick={() => navigate(`/course/${course._id}`)}
+                                        onClick={() => navigate(`/student/course/${course._id}`)}
                                         className="w-full py-2.5 border border-gray-200 text-gray-600 rounded-xl font-medium hover:bg-gray-50 hover:text-gray-900 transition-colors flex items-center justify-center gap-2 group-hover:border-blue-200 group-hover:bg-blue-50/50 group-hover:text-blue-700"
                                     >
                                         Go to Course <ArrowRight size={16} />

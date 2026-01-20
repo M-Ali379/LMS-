@@ -51,11 +51,11 @@ const AdminDashboard = () => {
         setSubmitting(true);
         try {
             if (editingUser) {
-                const res = await axios.put(`http://localhost:5000/api/users/${editingUser._id}`, formData);
+                const res = await axios.put(`/api/users/${editingUser._id}`, formData);
                 // Optimistic update or refresh? Refresh for simplicity with pagination
                 setUsers(users.map(u => u._id === editingUser._id ? res.data : u));
             } else {
-                const res = await axios.post('http://localhost:5000/api/users', formData);
+                const res = await axios.post('/api/users', formData);
                 setUsers([...users, res.data]);
             }
             resetForm();
@@ -76,7 +76,7 @@ const AdminDashboard = () => {
     const handleDelete = async (id) => {
         if (window.confirm('Are you sure you want to delete this user?')) {
             try {
-                await axios.delete(`http://localhost:5000/api/users/${id}`);
+                await axios.delete(`/api/users/${id}`);
                 setUsers(users.filter(u => u._id !== id));
             } catch (error) {
                 console.error(error);

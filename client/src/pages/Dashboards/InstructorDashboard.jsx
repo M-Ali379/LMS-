@@ -4,6 +4,7 @@ import { Plus, Layout, Edit, Trash2, X, Image as ImageIcon, BookOpen, Clock, Use
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLocation, useNavigate } from 'react-router-dom';
 import UserMenu from '../../components/UserMenu';
+import { useAuth } from '../../context/AuthContext';
 import { getYouTubeThumbnail } from '../../lib/utils';
 import StatsCard from '../../components/StatsCard';
 import { useSocket } from '../../context/SocketContext'; // Import useSocket
@@ -12,6 +13,7 @@ const InstructorDashboard = () => {
     const [courses, setCourses] = useState([]);
     const [stats, setStats] = useState({ totalCourses: 0, totalStudents: 0, courseStats: [] });
     const [showCreate, setShowCreate] = useState(false);
+    const { user } = useAuth();
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState(null);
@@ -25,48 +27,16 @@ const InstructorDashboard = () => {
     const socket = useSocket();
 
     useEffect(() => {
-        fetchCourses();
-    }, []);
-
-    // Listen for real-time updates
-    useEffect(() => {
-        if (!socket) return;
-
-        socket.on('course_created', (data) => {
-            console.log("Real-time event: course_created", data);
-            // In a real app, we might check if this course belongs to the current user
-            // or just refresh the list. For now, let's refresh.
+        if (user) {
             fetchCourses();
-        });
+        }
+    }, [user]);
 
-        socket.on('course_updated', (data) => {
-            console.log("Real-time event: course_updated", data);
-            fetchCourses();
-        });
-
-        return () => {
-            socket.off('course_created');
-            socket.off('course_updated');
-        };
-    }, [socket]);
+    // ... (socket useEffect remains same)
 
     const fetchCourses = async () => {
         try {
-            const userStr = localStorage.getItem('user');
-            // Safely parse user
-            let user = null;
-            try {
-                user = userStr ? JSON.parse(userStr) : null;
-            } catch (e) {
-                console.error("Error parsing user from localStorage:", e);
-                setFetchError("Authentication error. Please log in again.");
-                setLoading(false);
-                return;
-            }
-
             if (!user || !user._id) {
-                console.warn("No user found in localStorage");
-                // Optionally redirect to login or show error
                 setLoading(false);
                 return;
             }

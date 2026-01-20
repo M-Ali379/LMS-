@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { getEmbedUrl } from '../lib/utils';
-import { PlayCircle, CheckCircle, ArrowLeft, Lock, Trophy, Loader2 } from 'lucide-react';
+import { PlayCircle, CheckCircle, ArrowLeft, Lock, Trophy, Loader2, Clock } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const CourseDetail = () => {
@@ -16,17 +16,31 @@ const CourseDetail = () => {
     useEffect(() => {
         const fetchCourseAndProgress = async () => {
             try {
-                const [courseRes, progressRes] = await Promise.all([
-                    axios.get(`/api/courses/${id}`),
-                    axios.get(`/api/progress/${id}`)
-                ]);
+                // Fetch course first
+                const courseRes = await axios.get(`/api/courses/${id}`);
                 setCourse(courseRes.data);
-                setProgress(progressRes.data);
-                // Default to first lesson
-                if (courseRes.data.lessons?.length > 0) {
-                    // Try to find the first incomplete lesson, or just start at 0
-                    const firstIncomplete = courseRes.data.lessons.find(l => !progressRes.data?.completedLessons?.includes(l._id));
-                    setCurrentLesson(firstIncomplete || courseRes.data.lessons[0]);
+
+                // Then try to fetch progress (might 404 if not enrolled)
+                try {
+                    const progressRes = await axios.get(`/api/progress/${id}`);
+                    setProgress(progressRes.data);
+
+                    // Set current lesson logic
+                    if (courseRes.data.lessons?.length > 0) {
+                        const firstIncomplete = courseRes.data.lessons.find(l => !progressRes.data?.completedLessons?.includes(l._id));
+                        setCurrentLesson(firstIncomplete || courseRes.data.lessons[0]);
+                    }
+                } catch (err) {
+                    if (err.response && err.response.status === 404) {
+                        // Not enrolled yet
+                        setProgress(null);
+                        // Default to first lesson for preview
+                        if (courseRes.data.lessons?.length > 0) {
+                            setCurrentLesson(courseRes.data.lessons[0]);
+                        }
+                    } else {
+                        throw err;
+                    }
                 }
             } catch (error) {
                 console.error(error);
@@ -37,7 +51,25 @@ const CourseDetail = () => {
         fetchCourseAndProgress();
     }, [id]);
 
+    const handleEnroll = async () => {
+        try {
+            setLoading(true);
+            await axios.post(`/api/courses/${id}/enroll`);
+            // Refresh progress
+            const progressRes = await axios.get(`/api/progress/${id}`);
+            setProgress(progressRes.data);
+            setLoading(false);
+        } catch (error) {
+            console.error("Enrollment failed:", error);
+            setLoading(false);
+        }
+    };
+
     const handleComplete = async () => {
+        if (!progress) {
+            // Not enrolled
+            return;
+        }
         try {
             await axios.put(`/api/progress/${id}/completed`, {
                 lessonId: currentLesson._id
@@ -66,6 +98,9 @@ const CourseDetail = () => {
 
     const completedPercentage = Math.round(((progress?.completedLessons?.length || 0) / (course.lessons?.length || 1)) * 100);
 
+    console.log("Current Lesson:", currentLesson);
+    console.log("Embed URL:", currentLesson ? getEmbedUrl(currentLesson.videoUrl) : "No lesson");
+
     return (
         <div className="flex flex-col lg:flex-row min-h-screen gap-6 pb-8">
             {/* Main Content (Video) */}
@@ -78,12 +113,33 @@ const CourseDetail = () => {
                 </button>
 
                 <div className="bg-black rounded-2xl overflow-hidden shadow-2xl aspect-video relative group">
-                    <iframe
-                        className="w-full h-full"
-                        src={getEmbedUrl(currentLesson?.videoUrl)}
-                        allowFullScreen
-                        title={currentLesson?.title}
-                    ></iframe>
+                    {course.lessons && course.lessons.length > 0 ? (
+                        currentLesson ? (
+                            <iframe
+                                key={currentLesson._id} // Force re-render on lesson change
+                                className="w-full h-full"
+                                src={getEmbedUrl(currentLesson.videoUrl)}
+                                allowFullScreen
+                                title={currentLesson.title}
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            ></iframe>
+                        ) : (
+                            <div className="flex h-full items-center justify-center text-white">
+                                <div className="text-center">
+                                    <PlayCircle size={48} className="mx-auto mb-4 opacity-50" />
+                                    <p className="text-xl font-semibold">Select a lesson to start watching</p>
+                                </div>
+                            </div>
+                        )
+                    ) : (
+                        <div className="flex h-full items-center justify-center text-white bg-gray-900">
+                            <div className="text-center p-6">
+                                <Clock size={48} className="mx-auto mb-4 text-gray-500" />
+                                <h3 className="text-xl font-bold mb-2">Content Coming Soon</h3>
+                                <p className="text-gray-400">The instructor hasn't added any lessons to this course yet.</p>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 <div className="mt-6 space-y-4">
@@ -92,24 +148,33 @@ const CourseDetail = () => {
                             <h1 className="text-2xl font-bold text-gray-900 leading-tight">{currentLesson?.title}</h1>
                             <p className="text-gray-500 mt-2 text-lg">{currentLesson?.content}</p>
                         </div>
-                        <button
-                            onClick={handleComplete}
-                            disabled={progress?.completedLessons?.includes(currentLesson?._id)}
-                            className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all transform hover:scale-105 ${progress?.completedLessons?.includes(currentLesson?._id)
-                                ? 'bg-green-100 text-green-700 cursor-default'
-                                : 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-600/20'
-                                }`}
-                        >
-                            {progress?.completedLessons?.includes(currentLesson?._id) ? (
-                                <>
-                                    <CheckCircle size={20} /> Completed
-                                </>
-                            ) : (
-                                <>
-                                    <CheckCircle size={20} /> Mark Complete
-                                </>
-                            )}
-                        </button>
+                        {!progress ? (
+                            <button
+                                onClick={handleEnroll}
+                                className="flex items-center gap-2 px-8 py-3 rounded-xl font-bold bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-600/20 transition-all transform hover:scale-105"
+                            >
+                                <PlayCircle size={20} /> Enroll Now
+                            </button>
+                        ) : (
+                            <button
+                                onClick={handleComplete}
+                                disabled={progress?.completedLessons?.includes(currentLesson?._id)}
+                                className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all transform hover:scale-105 ${progress?.completedLessons?.includes(currentLesson?._id)
+                                    ? 'bg-green-100 text-green-700 cursor-default'
+                                    : 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-600/20'
+                                    }`}
+                            >
+                                {progress?.completedLessons?.includes(currentLesson?._id) ? (
+                                    <>
+                                        <CheckCircle size={20} /> Completed
+                                    </>
+                                ) : (
+                                    <>
+                                        <CheckCircle size={20} /> Mark Complete
+                                    </>
+                                )}
+                            </button>
+                        )}
                     </div>
                 </div>
             </div>
